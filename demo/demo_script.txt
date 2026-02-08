@@ -1,0 +1,7 @@
+1. Register user
+2. Login with correct credentials
+3. Show session key
+4. Login with wrong fingerprint
+5. Update credentials
+6. Old credentials fail
+7. New credentials succeed

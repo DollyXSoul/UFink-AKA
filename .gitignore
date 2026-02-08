@@ -1,0 +1,109 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Flask / Django / general
+*.log
+local_settings.py
+db.sqlite3
+instance/
+.webassets-cache
+
+# Sphinx
+docs/_build/
+
+# Jupyter
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv / poetry
+Pipfile.lock
+poetry.lock
+
+# Virtualenvs
+venv/
+ENV/
+env/
+.venv/
+venv.bak/
+venv/
+
+# VS Code
+.vscode/
+
+# IDEs
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secrets / keys / env
+*.pem
+*.key
+.env
+.env.*
+secrets.json
+secrets/
+
+# Logs and compiled files
+*.log
+*.pyc
+
+# Project-specific files
+# Ignore the server database and local smartcard files
+/server/database.json
+smartcard_*.json
