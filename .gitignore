@@ -105,5 +105,5 @@ secrets/
 
 # Project-specific files
 # Ignore the server database and local smartcard files
-/server/database.json
+server_*.json
 smartcard_*.json

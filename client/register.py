@@ -1,29 +1,27 @@
-from crypto_utils import H, xor_hex
-from server.server import register_user
 from biometric import extract_biometric
-import json
+from server import Server
+
+server = Server()
 
 
 def register():
-    user_id = input("User ID: ")
-    password = input("Password: ")
-    fingerprint = input("Fingerprint (simulated): ")
+    uid = input("User ID: ")
+    fp = input("Fingerprint: ")
 
-    HPW = H(user_id + password)
+    bio = extract_biometric(fp)
+    pk = server.register_user(uid, bio)
 
-    BF = extract_biometric(fingerprint)
+    smart_card = {
+        "user_id": uid,
+        "biometric": bio,
+        "server_pk": pk
+    }
 
-    masked_value = HPW
+    import json
+    with open(f"smartcard_{uid}.json", "w") as f:
+        json.dump(smart_card, f)
 
-    smart_card = register_user(user_id, masked_value)
-
-# Personalize smart card locally with biometric template
-    smart_card["biometric_template"] = BF
-
-    with open(f"smartcard_{user_id}.json", "w") as f:
-        json.dump(smart_card, f, indent=4)
-
-    print("[INFO] Registration successful")
+    print("[CLIENT] Registration complete")
 
 
 if __name__ == "__main__":

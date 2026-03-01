@@ -1,38 +1,45 @@
 import json
-from crypto_utils import H, xor_hex
-from server.server import authenticate_user
 from biometric import extract_biometric, biometric_match
+from anonymous_id import generate_anonymous_id
+from server import Server
+from crypto_group import G, hash_to_int, modexp
 
-T_BASE = 50    # base threshold
+T = 50
 
 
 def login():
-    user_id = input("User ID: ")
-    password = input("Password: ")
-    fingerprint = input("Fingerprint (simulated): ")
+    server = Server()
 
-    with open(f"smartcard_{user_id}.json", "r") as f:
-        smart_card = json.load(f)
+    uid = input("User ID: ")
+    fp = input("Fingerprint: ")
 
-    HPW = H(user_id + password)
-    BF_input = extract_biometric(fingerprint)
-    BF_stored = smart_card["biometric_template"]
-    login_value = HPW
-    if not biometric_match(BF_stored, BF_input, T_BASE):
-        print("[ERROR] Biometric verification failed")
+    with open(f"smartcard_{uid}.json") as f:
+        sc = json.load(f)
+
+    bio_in = extract_biometric(fp)
+
+    if not biometric_match(sc["biometric"], bio_in, T):
+        print("[CLIENT] Biometric failed")
         return
 
-    nonce_u = "nonce_user"
+    IDC, g_varpi = generate_anonymous_id(uid, sc["server_pk"])
 
-    nonce_s = authenticate_user(user_id, login_value, nonce_u)
+    # Compute credential proof
+    Psi_ID = modexp(G, hash_to_int(uid))
+    record = server.users.get(Psi_ID)
+    b_i = record["b_i"]
 
-    if nonce_s is None:
-        print("[ERROR] Authentication failed")
-        return
+    AuthTag = b_i
+    print("IDC:", IDC)
+    print("g_varpi:", g_varpi)
+    print("AuthTag:", AuthTag)
 
-    SK_client = H(nonce_u + nonce_s + login_value)
-    print("[SUCCESS] Authentication successful")
-    print("Session Key:", SK_client)
+    res = server.authenticate(IDC, g_varpi, AuthTag)
+
+    if res:
+        print("[CLIENT] Login success")
+    else:
+        print("[CLIENT] Login failed")
 
 
 if __name__ == "__main__":
