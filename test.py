@@ -1,0 +1,11 @@
+from server import Server
+
+
+server = Server()
+IDC = 57753793934753622144538445684031821611
+g_varpi = 79027707834107068406586085021691559892
+AuthTag = 80257522758754627667059990833225325159
+
+# anonymous login
+
+server.authenticate(IDC, g_varpi, AuthTag)
