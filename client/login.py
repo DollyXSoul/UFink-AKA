@@ -1,4 +1,6 @@
 import json
+import secrets
+from crypto_group import G, modexp, hash_to_int
 from biometric import extract_biometric, biometric_match
 from anonymous_id import generate_anonymous_id
 from server import Server
@@ -18,6 +20,8 @@ def login():
 
     # Biometric verification
     bio_in = extract_biometric(fp)
+    a = secrets.randbits(128)
+    A = modexp(G, a)
 
     if not biometric_match(sc["biometric"], bio_in, T):
         print("[CLIENT] Biometric failed")
@@ -35,12 +39,18 @@ def login():
     print("AuthTag:", AuthTag)
 
     # Send to server
-    res = server.authenticate(IDC, g_varpi, AuthTag)
+    B = server.authenticate(IDC, g_varpi, AuthTag, A)
 
-    if res:
-        print("[CLIENT] Login success")
-    else:
+    if not B:
         print("[CLIENT] Login failed")
+        return
+
+    K = modexp(B, a)
+
+    session_key = hash_to_int(str(K))
+
+    print("[CLIENT] Login success")
+    print("[CLIENT] Session key:", session_key)
 
 
 if __name__ == "__main__":
