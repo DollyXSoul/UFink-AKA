@@ -3,6 +3,7 @@ import os
 from crypto_group import G, hash_to_int, modexp, random_zq
 from blind_credentials import create_blind_credential
 from anonymous_id import generate_server_keys, recover_identity
+from gbf import GarbledBloomFilter
 
 DB_FILE = "server_db.json"
 KEY_FILE = "server_keys.json"
@@ -12,6 +13,7 @@ class Server:
     def __init__(self):
         self.sk, self.pk = self.load_or_create_keys()
         self.users = self.load_users()
+        self.gbf = GarbledBloomFilter()
 
     # -----------------------------
     # Key Management (Long-term sk)
@@ -51,12 +53,13 @@ class Server:
         Psi_ID = modexp(G, hash_to_int(user_id))
 
         self.users[Psi_ID] = {
-            "b_i": cred.b_i,
             "upd": cred.upd
         }
 
+        self.gbf.insert(str(Psi_ID), cred.b_i)
+        print("Inserted Psi_ID into GBF:", Psi_ID)
         self.save_users()
-        return self.pk
+        return self.pk, cred.b_i
 
     # -----------------------------
     # Authentication
@@ -68,8 +71,16 @@ class Server:
         if record is None:
             print("[SERVER] Authentication failed")
             return False
+        stored_bi = self.gbf.retrieve(str(Psi_ID))
 
-        if AuthTag == record["b_i"]:
+        print("Recovered Psi_ID:", Psi_ID)
+        print("GBF retrieved value:", self.gbf.retrieve(str(Psi_ID)))
+
+        if stored_bi is None:
+            print("[SERVER] Authentication failed (GBF miss)")
+            return False
+
+        if AuthTag == stored_bi:
             print("[SERVER] Anonymous authentication success")
             return True
 
@@ -84,10 +95,12 @@ class Server:
 
         alpha = random_zq()
 
-        for Psi_ID, record in self.users.items():
-            record["b_i"] = modexp(record["b_i"], alpha)
-            record["upd"] = record["upd"] * alpha
+        for Psi_ID in self.users:
+            stored_bi = self.gbf.retrieve(str(Psi_ID))
+            new_bi = modexp(stored_bi, alpha)
+            self.gbf.insert(str(Psi_ID), new_bi)
 
         self.save_users()
 
         print("[SERVER] GLOBAL credential re-randomization complete")
+        return alpha

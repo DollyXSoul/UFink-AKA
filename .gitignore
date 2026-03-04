@@ -107,3 +107,4 @@ secrets/
 # Ignore the server database and local smartcard files
 server_*.json
 smartcard_*.json
+gbf_storage.json

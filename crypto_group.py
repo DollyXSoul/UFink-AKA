@@ -2,7 +2,7 @@
 import secrets
 import hashlib
 
-# Large prime (2^127 - 1), safe for coursework
+# Large prime (2^127 - 1)
 P = 170141183460469231731687303715884105727
 G = 3
 
