@@ -1,6 +1,8 @@
 import hashlib
 import json
 import glob
+import time
+
 from server import Server
 from crypto_group import modexp
 
@@ -9,19 +11,17 @@ GBF_FILE = "gbf_storage.json"
 
 
 def file_fingerprint(path):
-    """
-    Compute SHA256 fingerprint of a file.
-    Used to show database change after compromise recovery.
-    """
     with open(path, "r") as f:
         data = f.read()
-
     return hashlib.sha256(data.encode()).hexdigest()
 
 
-def simulate():
+def simulate(mode="rebuild"):
+    """
+    mode = "rebuild" OR "counting"
+    """
 
-    server = Server()
+    server = Server(mode=mode)
 
     print("\n--- Simulating Server Compromise ---\n")
 
@@ -29,36 +29,37 @@ def simulate():
     db_before = file_fingerprint(DB_FILE)
     gbf_before = file_fingerprint(GBF_FILE)
 
-    print("DB fingerprint (before update):")
-    print(db_before)
+    print("DB fingerprint (before):", db_before)
+    print("GBF fingerprint (before):", gbf_before)
 
-    print("\nGBF fingerprint (before update):")
-    print(gbf_before)
+    # Step 2 — perform update
+    print(f"\n[SERVER] Applying {mode.upper()} update...\n")
 
-    # Step 2 — server performs credential re-randomization
-    print("\n[SERVER] Applying global credential re-randomization...\n")
+    start = time.time()
 
-    alpha = server.global_update()
+    if mode == "counting":
+        alpha = server.global_update_counting()
+    else:
+        alpha = server.global_update_rebuild()
 
-    print("[SERVER] Credentials re-randomized")
+    end = time.time()
+
+    print(f"[SERVER] Update complete in {end - start:.6f} sec")
 
     # Step 3 — snapshot after update
     db_after = file_fingerprint(DB_FILE)
     gbf_after = file_fingerprint(GBF_FILE)
 
-    print("DB fingerprint (after update) — metadata unchanged:")
-    print(db_after)
+    print("\nDB fingerprint (after):", db_after)
+    print("GBF fingerprint (after):", gbf_after)
 
-    print("GBF fingerprint (after update) — credentials updated:")
-    print(gbf_after)
-
-    # Step 4 — check if update worked
-    if db_before != db_after or gbf_before != gbf_after:
-        print("\n✔ Credential storage successfully re-randomized.")
+    # Step 4 — verify change
+    if gbf_before != gbf_after:
+        print("\n✔ Credentials successfully updated")
     else:
-        print("\n✘ No change detected — update failed.")
+        print("\n✘ No change detected")
 
-    # Step 5 — synchronize client smart cards
+    # Step 5 — sync client smart cards
     print("\n[CLIENT] Synchronizing smart cards...\n")
 
     for card in glob.glob("smartcard_*.json"):
@@ -73,8 +74,26 @@ def simulate():
 
     print("[CLIENT] Smart cards updated")
 
-    print("\n--- Compromise simulation complete ---\n")
+    print("\n--- Simulation Complete ---\n")
+
+    return end - start
+
+
+def compare():
+
+    print("\n===== COMPARISON: REBUILD vs COUNTING GBF =====\n")
+
+    t1 = simulate("rebuild")
+    t2 = simulate("counting")
+
+    print("\n===== RESULT =====")
+    print(f"Rebuild Time:  {t1:.6f} sec")
+    print(f"Counting Time: {t2:.6f} sec")
+
+    improvement = ((t1 - t2) / t1) * 100 if t1 > 0 else 0
+
+    print(f"Improvement: {improvement:.2f}% faster\n")
 
 
 if __name__ == "__main__":
-    alpha = simulate()
+    compare()

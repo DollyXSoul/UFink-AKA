@@ -2,7 +2,7 @@ import os
 import json
 import secrets
 
-from gbf import GarbledBloomFilter
+from gbf import GarbledBloomFilter, CountingGarbledBloomFilter
 from crypto_group import G, modexp, hash_to_int
 from crypto_group import random_zq
 from blind_credentials import create_blind_credential
@@ -14,10 +14,14 @@ KEY_FILE = "server_keys.json"
 
 class Server:
 
-    def __init__(self):
+    def __init__(self, mode="rebuild"):
         self.sk, self.pk = self.load_or_create_keys()
         self.users = self.load_users()
-        self.gbf = GarbledBloomFilter()
+
+        if mode == "counting":
+            self.gbf = CountingGarbledBloomFilter()
+        else:
+            self.gbf = GarbledBloomFilter()
 
     # -----------------------------
     # Key Management (Long-term sk)
@@ -66,7 +70,7 @@ class Server:
         Psi_ID = modexp(G, hash_to_int(user_id))
 
         self.users[Psi_ID] = {
-            "upd": cred.upd
+            "b_i": cred.b_i
         }
 
         self.gbf.insert(str(Psi_ID), cred.b_i)
@@ -123,26 +127,47 @@ class Server:
 
         return B
 
+    def rebuild_gbf(self):
+
+        new_gbf = GarbledBloomFilter()
+
+        for Psi_ID in self.users:
+            bi = self.users[Psi_ID]["b_i"]
+            new_gbf.insert(str(Psi_ID), bi)
+
+        self.gbf = new_gbf
     # -----------------------------
     # GLOBAL COMPROMISE UPDATE
     # -----------------------------
 
-    def global_update(self):
+    def global_update_rebuild(self):
 
-        print("[SERVER] Compromise detected — global re-randomization started")
+        alpha = random_zq()
+
+        for Psi_ID in self.users:
+            old_bi = self.users[Psi_ID]["b_i"]
+            new_bi = modexp(old_bi, alpha)
+
+            self.users[Psi_ID]["b_i"] = new_bi
+
+        self.rebuild_gbf()
+        return alpha
+
+    def global_update_counting(self):
+
+        print("[SERVER] GLOBAL UPDATE (Counting GBF Mode)")
 
         alpha = random_zq()
 
         for Psi_ID in self.users:
 
-            stored_bi = self.gbf.retrieve(str(Psi_ID))
+            old_bi = self.users[Psi_ID]["b_i"]
 
-            new_bi = modexp(stored_bi, alpha)
+            new_bi = modexp(old_bi, alpha)
 
-            self.gbf.insert(str(Psi_ID), new_bi)
+            self.users[Psi_ID]["b_i"] = new_bi
 
-        self.save_users()
-
-        print("[SERVER] GLOBAL credential re-randomization complete")
+        # 🔥 no rebuild
+            self.gbf.update(str(Psi_ID), old_bi, new_bi)
 
         return alpha

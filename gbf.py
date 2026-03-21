@@ -61,3 +61,62 @@ class GarbledBloomFilter:
 
         with open(GBF_FILE, "w") as f:
             json.dump(self.table, f)
+
+
+class CountingGarbledBloomFilter:
+
+    def __init__(self, size=256, k=3):
+        self.size = size
+        self.k = k
+        self.table = [{} for _ in range(size)]  # dict per slot
+
+    def _hashes(self, key):
+        indices = []
+        for i in range(self.k):
+            h = hashlib.sha256((key + str(i)).encode()).hexdigest()
+            indices.append(int(h, 16) % self.size)
+        return indices
+
+    def insert(self, key, value):
+        indices = self._hashes(key)
+
+        for idx in indices:
+            slot = self.table[idx]
+            slot[value] = slot.get(value, 0) + 1
+
+    def retrieve(self, key):
+        indices = self._hashes(key)
+
+        candidate_values = None
+
+        for idx in indices:
+            slot = self.table[idx]
+
+            if not slot:
+                return None
+
+            if candidate_values is None:
+                candidate_values = set(slot.keys())
+            else:
+                candidate_values &= set(slot.keys())
+
+        if not candidate_values:
+            return None
+
+        # return most frequent
+        return max(candidate_values, key=lambda v: sum(self.table[i].get(v, 0) for i in indices))
+
+    def delete(self, key, value):
+        indices = self._hashes(key)
+
+        for idx in indices:
+            slot = self.table[idx]
+
+            if value in slot:
+                slot[value] -= 1
+                if slot[value] == 0:
+                    del slot[value]
+
+    def update(self, key, old_value, new_value):
+        self.delete(key, old_value)
+        self.insert(key, new_value)
