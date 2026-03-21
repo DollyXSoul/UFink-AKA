@@ -1,4 +1,4 @@
-# UFinAKA Prototype – Fingerprint-Based Blind Credential Authentication and Key Agreement
+# UFinAKA Prototype – Fingerprint-Based Blind Credential Authentication and Key Agreement (with Counting Garbled Bloom Filter Optimization)
 
 ## Overview
 
@@ -7,6 +7,7 @@ This project implements a **prototype of the UFinAKA protocol** described in the
 **UFinAKA: Fingerprint-Based Authentication and Key Agreement with Updatable Blind Credentials**
 
 The system demonstrates how biometric authentication can be combined with **blind credentials, anonymous identities, and credential update mechanisms** to protect user privacy even if a credential database is compromised.
+This implementation further extends the original protocol by introducing a **Counting Garbled Bloom Filter (CGBF)** to improve the efficiency of credential updates. The system also includes **security attack simulations** and **large-scale performance evaluation (100–500 users)** to demonstrate scalability and robustness.
 
 This prototype is designed for **academic demonstration purposes** and simulates the main protocol mechanisms using simplified cryptographic primitives.
 
@@ -15,8 +16,6 @@ This prototype is designed for **academic demonstration purposes** and simulates
 # Features
 
 The current prototype implements the following components of the UFinAKA protocol.
-
----
 
 ## 1. Fingerprint-Based Authentication
 
@@ -100,8 +99,12 @@ upd
 
 Actual credentials `b_i` are hidden inside the GBF.
 
----
 
+### Limitation
+
+The standard GBF does not support deletion or in-place updates. As a result, after credential updates, the GBF must be reconstructed, which introduces additional computational overhead.
+
+---
 ## 5. Session Key Agreement
 
 After successful authentication the client and server establish a shared session key using a **Diffie-Hellman key exchange**.
@@ -129,6 +132,13 @@ Example output:
 ## 6. Credential Update After Database Compromise
 
 If the server detects that the credential database has been compromised, all credentials are **globally re-randomized**.
+Credentials are re-randomized using two approaches:
+
+1. **Rebuild Mode (Original UFinAKA)**  
+   - GBF is reconstructed after update
+
+2. **Counting GBF Mode (Proposed)**  
+   - Credentials are updated in-place without rebuilding
 
 Update rule:
 
@@ -140,7 +150,40 @@ This invalidates previously stolen credentials.
 
 ---
 
-## 7. Smart Card Synchronization
+
+## 7. Counting Garbled Bloom Filter (Proposed Enhancement)
+
+To improve the efficiency of credential updates, we extend the standard GBF into a **Counting Garbled Bloom Filter (CGBF)**.
+
+Unlike the original GBF, CGBF supports:
+
+- Insert
+- Delete
+- Update (in-place modification of credentials)
+
+### Key Idea
+
+Instead of rebuilding the entire GBF after credential updates, the system directly updates affected entries:
+
+b_i' = b_i^α
+
+### Benefits
+
+- Eliminates GBF reconstruction
+- Supports dynamic credential updates
+- Improves scalability for large user bases
+
+### Complexity Comparison
+
+| Approach | Operation Cost |
+|---------|--------------|
+| Standard GBF | O(N) + rebuild |
+| Counting GBF | O(N) |
+
+---
+
+
+## 8. Smart Card Synchronization
 
 After credential update, client smart cards synchronize automatically:
 
@@ -150,7 +193,7 @@ This allows users to continue authenticating normally.
 
 ---
 
-## 8. Database Compromise Simulation
+## 9. Database Compromise Simulation
 
 The script `simulate_compromise.py` demonstrates the recovery process after a database breach.
 
@@ -183,7 +226,7 @@ Client \
 ├── Biometric verification \
 ├── Anonymous ID generation\
 ├── Blind credential storage\
-├── Session key derivation\
+├── Session key derivation
 
 Server\
 ├── Long-term secret key (sk)\
@@ -191,7 +234,7 @@ Server\
 ├── Garbled Bloom Filter\
 ├── Credential verification\
 ├── Global credential update\
-└── Session key agreement\
+└── Session key agreement
 
 ---
 
@@ -209,12 +252,15 @@ UFink-AKA\
 ├── blind*credentials.py\
 ├── anonymous_id.py\
 ├── crypto_group.py\
+├── security_tests.py\
+├── benchmark_test.py\
+├── bulk_setup.py\
 │\
 ├── simulate_compromise.py\
 │\
 ├── server_db.json\
 ├── gbf_storage.json\
-└── smartcard*<user>.json\
+└── smartcard*<user>.json
 
 ---
 
@@ -238,18 +284,80 @@ Example output:
 
 python simulate_compromise.py
 
+### Run security tests
+
+python security_tests.py
+
+### Run large-scale benchmark (100 / 500 users)
+
+python benchmark_test.py
+
 ---
 
-# Security Properties Demonstrated
+
+# Security Evaluation
+
+The system was tested against multiple attack scenarios to evaluate protocol robustness.
+
+## Attacks Simulated
+
+- Replay Attack
+- Impersonation Attack
+- Fabrication Attack
+- Credential Tampering
+
+## Results
+
+| Attack Type | Result |
+|------------|--------|
+| Replay Attack | Partially vulnerable (no nonce tracking) |
+| Impersonation | Prevented |
+| Fabrication | Prevented |
+| Credential Tampering | Prevented |
+
+These results confirm that the protocol maintains strong authentication guarantees while highlighting areas for further improvement (e.g., replay protection).
+
+---
+
+# Performance Evaluation
+
+The system was evaluated for scalability using **100 and 500 users**.
+
+## Metrics Measured
+
+- Authentication time
+- Credential update time (post-compromise)
+
+## Comparison
+
+Two approaches were compared:
+
+1. **Rebuild GBF (Original UFinAKA)**
+2. **Counting GBF (Proposed)**
+
+## Observations
+
+- Counting GBF eliminates GBF reconstruction overhead
+- Update time is significantly reduced
+- Performance improvement increases with number of users
+
+## Conclusion
+
+The proposed Counting GBF improves system scalability and reduces recovery time after compromise.
+
+
+# Security and Performance Summary
 
 This prototype demonstrates:
 
-- Biometric authentication
-- Anonymous identity generation
+- Secure biometric authentication
+- Anonymous identity protection
 - Blind credential verification
 - Credential privacy using GBF
 - Session key agreement
 - Credential update after compromise
-- Database compromise recovery
+- Security testing against common attacks
+- Performance optimization using Counting GBF
+- Scalability evaluation up to 500 users
 
 ---
