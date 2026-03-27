@@ -2,17 +2,20 @@ import hashlib
 import json
 import glob
 import time
+import os
 
 from server import Server
 from crypto_group import modexp
 
 DB_FILE = "server_db.json"
-GBF_FILE = "gbf_storage.json"
 
 
 def file_fingerprint(path):
+    if not os.path.exists(path):
+        return "FILE_NOT_FOUND"
     with open(path, "r") as f:
         data = f.read()
+
     return hashlib.sha256(data.encode()).hexdigest()
 
 
@@ -20,7 +23,7 @@ def simulate(mode="rebuild"):
     """
     mode = "rebuild" OR "counting"
     """
-
+    GBF_FILE = "cgbf_storage.json" if mode == "counting" else "gbf_storage.json"
     server = Server(mode=mode)
 
     print("\n--- Simulating Server Compromise ---\n")

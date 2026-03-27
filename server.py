@@ -20,6 +20,9 @@ class Server:
 
         if mode == "counting":
             self.gbf = CountingGarbledBloomFilter()
+            for Psi_ID in self.users:
+                bi = self.users[Psi_ID]["b_i"]
+                self.gbf.insert(str(Psi_ID), bi)
         else:
             self.gbf = GarbledBloomFilter()
 
@@ -102,8 +105,8 @@ class Server:
         if stored_bi is None:
             print("[SERVER] Authentication failed (GBF miss)")
             return False
-
-        if AuthTag != stored_bi:
+        stored_bi_db = self.users.get(Psi_ID)["b_i"]
+        if AuthTag != stored_bi_db:
             print("[SERVER] Credential verification failed")
             return False
 
@@ -169,5 +172,7 @@ class Server:
 
         # 🔥 no rebuild
             self.gbf.update(str(Psi_ID), old_bi, new_bi)
+        self.save_users()
+        self.gbf.save()
 
         return alpha

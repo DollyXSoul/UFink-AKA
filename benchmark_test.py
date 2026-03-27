@@ -14,7 +14,7 @@ import glob
 
 def cleanup():
 
-    files = ["server_db.json", "gbf_storage.json"]
+    files = ["server_db.json", "gbf_storage.json", "cgbf_storage.json"]
 
     for f in files:
         if os.path.exists(f):
@@ -84,7 +84,7 @@ def benchmark_update(n):
 
 def run():
 
-    for n in [5]:
+    for n in [0]:
 
         print(f"\n===== TESTING FOR {n} USERS =====")
 
